@@ -20,23 +20,17 @@ def getColorSpace():
             green += color[1]
             blue += color[2]
             
-    yPixels = image.size[1] - (Y_OFFSET * 2) - 1
-    xPixels = image.size[0] - (X_OFFSET * 2) - 1
+    yPixels = image.size[1] - (Y_OFFSET)
+    xPixels = image.size[0] - (X_OFFSET)
     pixelCount = (yPixels / SKIP) * (xPixels / SKIP)
     red = (red / pixelCount)
     green = (green / pixelCount)
     blue = (blue / pixelCount)
     return [int(red), int(green), int(blue)]
 
-def getBrightness(color):
-    brightness = max(color)
-    if brightness > 255:
-        brightness = 255
-    return brightness
-
 async def run(device):     
         color = getColorSpace()
-        brightness = getBrightness(color)
+        brightness = max(color)
         await device.setColor(color)
         await device.setBrightness(brightness)       
         
