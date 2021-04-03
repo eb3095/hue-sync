@@ -28,9 +28,15 @@ def getColorSpace():
     blue = (blue / pixelCount)
     return [int(red), int(green), int(blue)]
 
+def getBrightness(color):
+    brightness = max(color)
+    if brighness > 255:
+        brightness = 255
+    return brightness
+
 async def run(device):     
         color = getColorSpace()
-        brightness = max(color)
+        brightness = getBrightness(color)
         await device.setColor(color)
         await device.setBrightness(brightness)       
         
