@@ -5,6 +5,8 @@ Single Hue LED Strip color syncing for PC.
 This can be used to sync one "Hue Lamp" to a PC screen for color syncing. Theres a few
 limitations which are strictly based on my personal use case.
 
+This does NOT use the bridge! This is a DIRECT bluetooth connection!
+
 * Only the primary screen is captured
 * Only 1 device can be used
 * Only every 10 pixels are computed due to performance
@@ -17,6 +19,8 @@ It should work on linux though, might need tweaked!
 
 You need to reset the strip with the phone app for this to work! Afterwards pair it once
 with your PC to get it to work again.
+
+You will obviously need bluetooth on your PC.
 
 # Install
 ```
