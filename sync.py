@@ -5,13 +5,15 @@ from huelib.HueDevice import HueDevice
 from PIL import ImageGrab, Image
 
 SKIP = 10
+Y_OFFSET = 50
+X_OFFSET = 50
 
 def getColorSpace():
     image = ImageGrab.grab()
     image.save('test_image.png')
     red = green = blue = 0
-    for y in range(0, image.size[1], SKIP):
-        for x in range(0, image.size[0], SKIP):
+    for y in range(Y_OFFSET - 1, image.size[1] - Y_OFFSET, SKIP):
+        for x in range(X_OFFSET - 1, image.size[0] - X_OFFSET, SKIP):
             # [R, G, B]
             color = image.getpixel((x, y))
    
@@ -19,7 +21,9 @@ def getColorSpace():
             green += color[1]
             blue += color[2]
             
-    pixelCount = (image.size[1]/SKIP) * (image.size[0]/SKIP)
+    yPixels = image.size[1] - (Y_OFFSET * 2)
+    xPixels = image.size[0] - (X_OFFSET * 2)
+    pixelCount = (yPixels / SKIP) * (xPixels / SKIP)
     red = (red / pixelCount)
     green = (green / pixelCount)
     blue = (blue / pixelCount)
