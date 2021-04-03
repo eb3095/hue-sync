@@ -20,8 +20,8 @@ def getColorSpace():
             green += color[1]
             blue += color[2]
             
-    yPixels = image.size[1] - (Y_OFFSET * 2)
-    xPixels = image.size[0] - (X_OFFSET * 2)
+    yPixels = image.size[1] - (Y_OFFSET * 2) - 1
+    xPixels = image.size[0] - (X_OFFSET * 2) - 1
     pixelCount = (yPixels / SKIP) * (xPixels / SKIP)
     red = (red / pixelCount)
     green = (green / pixelCount)
