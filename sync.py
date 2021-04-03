@@ -30,7 +30,7 @@ def getColorSpace():
 
 def getBrightness(color):
     brightness = max(color)
-    if brighness > 255:
+    if brightness > 255:
         brightness = 255
     return brightness
 
