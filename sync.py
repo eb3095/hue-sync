@@ -10,7 +10,6 @@ X_OFFSET = 50
 
 def getColorSpace():
     image = ImageGrab.grab()
-    image.save('test_image.png')
     red = green = blue = 0
     for y in range(Y_OFFSET - 1, image.size[1] - Y_OFFSET, SKIP):
         for x in range(X_OFFSET - 1, image.size[0] - X_OFFSET, SKIP):

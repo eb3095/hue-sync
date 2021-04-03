@@ -1,5 +1,3 @@
-from bleak import BleakClient
-
 # Credit: https://gist.github.com/shinyquagsire23/f7907fdf6b470200702e75a30135caf3
 LIGHT_CHARACTERISTIC = "932c32bd-0002-47a2-835a-a8d455b859dd"
 BRIGHTNESS_CHARACTERISTIC = "932c32bd-0003-47a2-835a-a8d455b859dd"
