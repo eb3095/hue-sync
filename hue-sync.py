@@ -3,7 +3,6 @@ import signal
 import sys
 import os
 from asyncqt import QEventLoop
-from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 from bleak import BleakClient
@@ -21,7 +20,6 @@ X_OFFSET = 50
 # Runtime
 RUNNING = True
 RUNNING_TASK = None
-INTERRUPT = False
 MODE = "SYNC"
 
 def createTray(widget):
@@ -78,12 +76,10 @@ def quitSync():
         RUNNING_TASK.cancel()
     
 def setMode(mode): 
-    print("FOUND: %s" % mode)
+    print("Mode Changed: %s" % mode)
     global MODE, RUNNING_TASK
     MODE = mode
     if RUNNING_TASK:
-        print("b")
-        INTERRUPT = True
         RUNNING_TASK.cancel()
 
 def getColorSpace():
@@ -127,8 +123,7 @@ async def sync(device):
         
 # Cancelable wait task
 async def wait():
-    INTERRUPT = False
-    while RUNNING and not INTERRUPT:
+    while RUNNING:
         # Wait a second
         await asyncio.sleep(1.0)
         
@@ -147,7 +142,9 @@ async def getDevice():
         print("No device found, Try: %s" % (i + 1))
     return None
     
-async def start():         
+async def start():   
+    global RUNNING_TASK
+            
     print("Discovering...")
     address = await getDevice()
     
@@ -168,11 +165,10 @@ async def start():
         
         print("Starting loop...")
         while RUNNING:
-            print("A")
             # Power on if off but set to on
             if MODE != "OFF":
                 if not device.isPoweredOn():
-                    device.powerOn()
+                    await device.powerOn()
                     
             # Set options
             if MODE == "RED":
@@ -200,19 +196,20 @@ async def start():
                 
             # Set color and brightness
             if MODE != "OFF" and MODE != "SYNC":
-                print("Setting color")
-                print(color)
                 await device.setColor(color)
                 await device.setBrightness(253)
                 
             # Set task
             if MODE != "SYNC":
-                RUNNING_TASK = asyncio.ensure_future(wait())        
+                RUNNING_TASK = asyncio.ensure_future(wait())
             if MODE == "SYNC":
                 RUNNING_TASK = asyncio.ensure_future(sync(device))
             
             # Await the task
-            await RUNNING_TASK
+            try:
+                await RUNNING_TASK
+            except asyncio.CancelledError:
+                pass
             
             # Clear the task
             RUNNING_TASK = None
