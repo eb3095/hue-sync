@@ -17,6 +17,7 @@ def convertRGB(rgb):
 
 class HueDevice:
     client = None
+    isOn = True
     
     def __init__(self, client):
         self.client = client
@@ -40,7 +41,12 @@ class HueDevice:
         )
         
     async def powerOn(self):
+        self.isOn = True
         await self.client.write_gatt_char(LIGHT_CHARACTERISTIC, b"\x01")
         
     async def powerOff(self):
+        self.isOn = False
         await self.client.write_gatt_char(LIGHT_CHARACTERISTIC, b"\x00")
+        
+    def isPoweredOn(self):
+        return self.isOn
