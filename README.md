@@ -29,7 +29,11 @@ cd hue-sync
 python -m pip install -r .\requirements.txt
 ```
 
+Alternatively use the EXE in dist/
+
 # Usage
 ```
 python .\sync.py
 ```
+
+Alternatively Run the EXE. Use the task manager to close. Tray icon comming soon?
