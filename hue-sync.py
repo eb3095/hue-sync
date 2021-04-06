@@ -1,5 +1,9 @@
 import asyncio
 import signal
+import sys
+import os
+from asyncqt import QEventLoop
+from PyQt5 import QtCore, QtGui, QtWidgets
 from bleak import BleakClient
 from bleak import discover
 from huelib.HueDevice import HueDevice
@@ -11,8 +15,29 @@ X_OFFSET = 50
 RUNNING = True
 RUNNING_TASK = None
 
+class SystemTrayIcon(QtWidgets.QSystemTrayIcon):
+    def __init__(self, icon, parent=None):
+        QtWidgets.QSystemTrayIcon.__init__(self, icon, parent)
+        menu = QtWidgets.QMenu(parent)
+        menu.addAction("Exit")
+        self.setContextMenu(menu)
+        menu.triggered.connect(self.exit)
+
+    def exit(self):
+        quitSync()
+        
+def getPath(relative_path):
+    try:
+        path = sys._MEIPASS
+    except Exception:
+        path = os.path.abspath(".")
+
+    return os.path.join(path, relative_path)
 
 def signalHandler(sig, frame):
+    quitSync()
+    
+def quitSync():    
     global RUNNING
     RUNNING = False
     if RUNNING_TASK:
@@ -72,7 +97,7 @@ async def getDevice():
         print("No device found, Try: %s" % (i + 1))
     return None
     
-async def start():        
+async def start():         
     print("Discovering...")
     address = await getDevice()
     
@@ -108,8 +133,20 @@ async def start():
 # Catch CTRL+C
 signal.signal(signal.SIGINT, signalHandler)
 
-# Create loop
-loop = asyncio.get_event_loop()
+# Create app
+app = QtWidgets.QApplication(sys.argv)
     
+# Loop for asyncio
+loop = QEventLoop(app)
+asyncio.set_event_loop(loop)
+
+# Create tray
+widget = QtWidgets.QWidget()
+icon = QtGui.QIcon(getPath("assets/hue-sync.ico"))
+trayIcon = SystemTrayIcon(icon, widget)
+trayIcon.setToolTip("Hue-Sync")
+trayIcon.show()
+
 # Start
-RUNNING_TASK = loop.run_until_complete(start())
+with loop:
+    loop.run_until_complete(start())
