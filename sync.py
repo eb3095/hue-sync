@@ -13,13 +13,16 @@ RUNNING_TASK = None
 
 
 def signalHandler(sig, frame):
-    print('Termination detected, ending gracefully!')
+    global RUNNING
     RUNNING = False
     if RUNNING_TASK:
         RUNNING_TASK.cancel()
 
 def getColorSpace():
+    # Screenshot primary screen
     image = ImageGrab.grab()
+        
+    # Calculate pixel colors
     red = green = blue = 0
     for y in range(Y_OFFSET, image.size[1] - Y_OFFSET, SKIP):
         for x in range(X_OFFSET, image.size[0] - X_OFFSET, SKIP):
@@ -30,9 +33,12 @@ def getColorSpace():
             green += color[1]
             blue += color[2]
             
+    # Calculate pixels
     yPixels = image.size[1] - (Y_OFFSET * 2)
     xPixels = image.size[0] - (X_OFFSET * 2)
     pixelCount = (yPixels / SKIP) * (xPixels / SKIP)
+    
+    # Calculate avg color
     red = (red / pixelCount)
     green = (green / pixelCount)
     blue = (blue / pixelCount)
@@ -40,16 +46,22 @@ def getColorSpace():
     return [int(red), int(green), int(blue)]
 
 async def run(device):     
+        # Get values
         color = getColorSpace()
         brightness = max(color)
+        
+        # Set values
         await device.setColor(color)
-        await device.setBrightness(brightness)       
+        await device.setBrightness(brightness)     
+                   
+        # Roughly 60hz
+        await asyncio.sleep(0.0167)   
         
 async def getDevice():
     for i in range(5):
-        try
+        try:
             devices = await discover()
-        except Exception as ex
+        except Exception as ex:
             print("Error connecting to device, Try: %s" % (i + 1))
             continue
 
@@ -90,9 +102,8 @@ async def start():
             # Clear the task
             RUNNING_TASK = None
             
-            # Roughly 60hz
-            await asyncio.sleep(0.0167)
-
+        # Sig kill happened
+        print('Termination detected, ending gracefully!')
 
 # Catch CTRL+C
 signal.signal(signal.SIGINT, signalHandler)
@@ -101,4 +112,4 @@ signal.signal(signal.SIGINT, signalHandler)
 loop = asyncio.get_event_loop()
     
 # Start
-loop.run_until_complete(start())
+RUNNING_TASK = loop.run_until_complete(start())
