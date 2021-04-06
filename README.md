@@ -31,9 +31,24 @@ python -m pip install -r .\requirements.txt
 
 Alternatively use the EXE in dist/
 
-# Usage
+# Building
+There are some issues with building this that needs to be addressed.
+
+Unintall enum34
 ```
-python .\sync.py
+pip uninstall -y enum34
 ```
 
-Alternatively Run the EXE. Use the task manager to close. Tray icon comming soon?
+You need to use pip 18.1
+```
+python -m pip install pip==18.1
+```
+
+Do these steps BEFORE installing requirements or pyinstall will fail.
+
+# Usage
+```
+python .\hue-sync.py
+```
+
+Alternatively Run the EXE in dist/

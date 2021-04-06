@@ -1,2 +1,5 @@
 bleak
 pillow
+asyncqt
+pyqt5
+pyinstall
