@@ -1,4 +1,5 @@
 import asyncio
+import signal
 from bleak import BleakClient
 from bleak import discover
 from huelib.HueDevice import HueDevice
@@ -7,12 +8,21 @@ from PIL import ImageGrab, Image
 SKIP = 10
 Y_OFFSET = 50
 X_OFFSET = 50
+RUNNING = True
+RUNNING_TASK = None
+
+
+def signalHandler(sig, frame):
+    print('Termination detected, ending gracefully!')
+    RUNNING = False
+    if RUNNING_TASK:
+        RUNNING_TASK.cancel()
 
 def getColorSpace():
     image = ImageGrab.grab()
     red = green = blue = 0
-    for y in range(Y_OFFSET - 1, image.size[1] - Y_OFFSET, SKIP):
-        for x in range(X_OFFSET - 1, image.size[0] - X_OFFSET, SKIP):
+    for y in range(Y_OFFSET, image.size[1] - Y_OFFSET, SKIP):
+        for x in range(X_OFFSET, image.size[0] - X_OFFSET, SKIP):
             # [R, G, B]
             color = image.getpixel((x, y))
    
@@ -26,14 +36,6 @@ def getColorSpace():
     red = (red / pixelCount)
     green = (green / pixelCount)
     blue = (blue / pixelCount)
-    
-    # Logic above can get iffy due to math
-    if red > 255:
-        red = 255
-    if green > 255:
-        green = 255
-    if blue > 255:
-        blue = 255
         
     return [int(red), int(green), int(blue)]
 
@@ -45,11 +47,17 @@ async def run(device):
         
 async def getDevice():
     for i in range(5):
-        devices = await discover()
+        try
+            devices = await discover()
+        except Exception as ex
+            print("Error connecting to device, Try: %s" % (i + 1))
+            continue
+
         for d in devices:
             if "Hue Lamp" in d.name:
                 return d.address
-        print("No device found, Try: %s" % i)
+            
+        print("No device found, Try: %s" % (i + 1))
     return None
     
 async def start():        
@@ -72,12 +80,22 @@ async def start():
         await asyncio.sleep(1.0)
         
         print("Starting loop...")
-        while True:
-            await run(device)
+        while RUNNING:
+            # Create the task
+            RUNNING_TASK = asyncio.ensure_future(run(device))
+            
+            # Await the task
+            await RUNNING_TASK
+            
+            # Clear the task
+            RUNNING_TASK = None
             
             # Roughly 60hz
             await asyncio.sleep(0.0167)
 
+
+# Catch CTRL+C
+signal.signal(signal.SIGINT, signalHandler)
 
 # Create loop
 loop = asyncio.get_event_loop()
