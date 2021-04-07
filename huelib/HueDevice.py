@@ -22,6 +22,15 @@ class HueDevice:
     def __init__(self, client):
         self.client = client
         
+    async def connect(self):
+        await self.client.connect()
+        
+    async def disconnect(self):
+        await self.client.disconnect()
+        
+    def getAddress(self):
+        return self.client.address
+        
     async def setColor(self, color):
         await self.client.write_gatt_char(
             COLOR_CHARACTERISTIC,

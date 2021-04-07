@@ -1,5 +1,5 @@
 # hue-sync
-Single Hue LED Strip color syncing for PC.
+Hue LED Strip color syncing for PC.
 
 # Description
 This can be used to sync one "Hue Lamp" to a PC screen for color syncing. Theres a few
@@ -8,9 +8,7 @@ limitations which are strictly based on my personal use case.
 This does NOT use the bridge! This is a DIRECT bluetooth connection!
 
 * Only the primary screen is captured
-* Only 1 device can be used
-* Only every 10 pixels are computed due to performance
-* The first "Hue Lamp" found via discovery will be used (I only have 1)
+* Only every 10 pixels are computed due to performance (configurable)
 
 # Requirements
 The required packages are listed in requirements.txt. Some packages don't work, or don't
@@ -52,3 +50,27 @@ python .\hue-sync.py
 ```
 
 Alternatively Run the EXE in dist/
+
+# Configuration
+The config should be config.json and next to the exe or py file.
+
+```json
+{
+    "SKIP": 10,
+    "Y_OFFSET": 50,
+    "X_OFFSET": 50,
+    "Devices": {
+        "XX:XX:XX:XX:XX:XX": "top",
+        "XX:XX:XX:XX:XX:XX": "left",
+        "XX:XX:XX:XX:XX:XX": "right",
+        "XX:XX:XX:XX:XX:XX": "bottom",
+        "XX:XX:XX:XX:XX:XX": "all"
+    }
+}
+```
+
+- Y and X offset are for border ignore. 
+- Skip is a perfomance tweak for skipping pixels. 
+- If devices is blank all will be used, if defined, only the ones listed
+  will be used. The value is the position.
+- Valid positions are top, bottom, left, right, and all.
