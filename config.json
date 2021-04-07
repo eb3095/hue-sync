@@ -3,7 +3,10 @@
     "Y_OFFSET": 50,
     "X_OFFSET": 50,
     "Devices": {
+        "XX:XX:XX:XX:XX:XX": "top",
         "XX:XX:XX:XX:XX:XX": "left",
-        "XX:XX:XX:XX:XX:XX": "right"
+        "XX:XX:XX:XX:XX:XX": "right",
+        "XX:XX:XX:XX:XX:XX": "bottom",
+        "XX:XX:XX:XX:XX:XX": "all"
     }
 }
