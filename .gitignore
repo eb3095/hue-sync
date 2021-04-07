@@ -3,3 +3,4 @@ __pycache__
 build
 personal
 hue-sync.log
+config.json

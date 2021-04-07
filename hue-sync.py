@@ -94,12 +94,13 @@ def log(level, str):
         exit(255)
         
 def logUncaught(exctype, value, trace):
-    # Capture this error and recover
+    # Capture these errors and recover
+    # Its from not being able to capture SIGINT on Windows
     if str(exctype) == "<class 'KeyboardInterrupt'>":
         quitSync()
         return
     
-    if str(exctype) == "<class 'KeyError'>" and value == 7:
+    if str(exctype) == "<class 'KeyError'>":
         quitSync()
         return
     
@@ -235,9 +236,8 @@ async def setDevice(device):
     # Set task
     if MODE == "SYNC":
         await sync(device)
-    
-async def start():    
-    global RUNNING_TASK        
+        
+async def connectToDevices():        
     log("info", "Discovering...")
     addresses = await getDevices()
     
@@ -251,13 +251,33 @@ async def start():
     
     devices = []
     for addr in addresses:
-        client = BleakClient(addr)
-        device = HueDevice(client)
-        devices.append(device)
-        log("info", "Connecting to: %s" % addr)    
-        await device.connect()
-        log("info", "Powering on...")        
-        await device.powerOn()
+        async def doConnect(addr):
+            for i in range(5):            
+                client = BleakClient(addr)
+                device = HueDevice(client)
+                try:
+                    log("info", "Connecting to: %s" % addr)    
+                    await device.connect()
+                    log("info", "Powering on...")        
+                    await device.powerOn()
+                except:
+                    log("info", "Failed to connect to: %s, Try: %s" %
+                        (device.getAddress(), i))
+                    continue                
+                return device
+            return None
+        device = await doConnect(addr)
+        if device:
+            devices.append(device)
+    
+    return devices
+    
+async def start():    
+    global RUNNING_TASK            
+    devices = await connectToDevices()
+    
+    if len(devices) < 1:
+        log("error", "Failed to connect to any device!")
         
     log("info", "Starting loop...")
     while RUNNING:   
