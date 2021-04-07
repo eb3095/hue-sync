@@ -3,6 +3,8 @@ import signal
 import sys
 import os
 import json
+import logging
+import traceback
 from asyncqt import QEventLoop
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
@@ -78,9 +80,34 @@ def quitSync():
     RUNNING = False
     if RUNNING_TASK:
         RUNNING_TASK.cancel()
+        
+def log(level, str):
+    print("[%s] %s" % (level, str))
+    if level == "debug":
+        logging.debug(str)
+    if level == "info":
+        logging.info(str)
+    if level == "warning":
+        logging.warning(str)
+    if level == "error":
+        logging.error(str)
+        exit(255)
+        
+def logUncaught(exctype, value, trace):
+    # Capture this error and recover
+    if str(exctype) == "<class 'KeyboardInterrupt'>":
+        quitSync()
+        return
+    
+    if str(exctype) == "<class 'KeyError'>" and value == 7:
+        quitSync()
+        return
+    
+    trace = ''.join(traceback.format_tb(trace))
+    log("error", "Error: %s\nValue: %s\nTrace: %s" % (exctype, value, trace))
     
 def setMode(mode): 
-    print("Mode Changed: %s" % mode)
+    log("info", "Mode Changed: %s" % mode)
     global MODE, RUNNING_TASK
     MODE = mode
     if RUNNING_TASK:
@@ -149,7 +176,7 @@ async def getDevices():
         try:
             devices = await discover()
         except Exception as ex:
-            print("Error connecting to device, Try: %s" % (i + 1))
+            log("info", "Error connecting to device, Try: %s" % (i + 1))
             continue
 
         for d in devices:
@@ -167,7 +194,7 @@ async def getDevices():
     if len(devs) > 0:
         return devs
         
-    print("No device found!")
+    log("info", "No device found!")
     return None
 
 async def setDevice(device):
@@ -211,28 +238,28 @@ async def setDevice(device):
     
 async def start():    
     global RUNNING_TASK        
-    print("Discovering...")
+    log("info", "Discovering...")
     addresses = await getDevices()
     
     if not addresses:
-        print("Devices couldn't be found!")
+        log("info", "Devices couldn't be found!")
         exit(255)
         
-    print("Found: %s" % addresses)
+    log("info", "Found: %s" % addresses)
     
-    print("Connecting to devices...")
+    log("info", "Connecting to devices...")
     
     devices = []
     for addr in addresses:
         client = BleakClient(addr)
         device = HueDevice(client)
         devices.append(device)
-        print("Connecting to: %s" % addr)    
+        log("info", "Connecting to: %s" % addr)    
         await device.connect()
-        print("Powering on...")        
+        log("info", "Powering on...")        
         await device.powerOn()
         
-    print("Starting loop...")
+    log("info", "Starting loop...")
     while RUNNING:   
         coroutines = []
         
@@ -260,10 +287,14 @@ async def start():
             await asyncio.sleep(0.01) 
             
     # Sig kill happened
-    print('Termination detected, ending gracefully!')
+    log("info", 'Termination detected, ending gracefully!')
     for device in devices:
         await device.disconnect()
 
+
+# Set logging
+logging.basicConfig(filename='./hue-sync.log', level=logging.INFO)
+sys.excepthook = logUncaught
 
 # Parse config
 if os.path.exists("config.json"):
@@ -286,7 +317,8 @@ asyncio.set_event_loop(loop)
 try:
     loop.add_signal_handler(signal.SIGINT, signalHandler)
 except NotImplementedError:
-    print("CTRL+C Not supported on Windows, blame asyncqt!")
+    # Handle this with log hack
+    pass
 
 # Start
 with loop:
