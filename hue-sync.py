@@ -99,7 +99,7 @@ def log(level, str):
         
 def logUncaught(exctype, value, trace):
     # Capture these errors and recover
-    # Its from not being able to capture SIGINT in threads
+    # Its from not being able to capture SIGINT in threads in Windows
     if exctype == KeyboardInterrupt or exctype == KeyError:
         quitSync()
         return
@@ -177,21 +177,28 @@ async def getDevices():
         try:
             devices = await discover()
         except Exception as ex:
-            log("info", "Error connecting to device, Try: %s" % (i + 1))
+            log("info", "Error discovering devices")
             continue
 
         for d in devices:
+            # Skip added
+            if d.address in devs:
+                continue
+            
             # Skep devices not in config
             if len(CONFIG["Devices"]) > 0 and d.address not in CONFIG['Devices']:
                 continue
             
-            if "Hue Lamp" in d.name and d.address not in devs:
-                devs.append(d.address)
+            # If devices not specified, skip things without Hue in the name
+            if len(CONFIG["Devices"]) == 0 and "Hue" not in d.name:
+                continue            
+            
+            devs.append(d.address)                
                 
-        # Some times devices take a few tries
+        # Some times devices take a few tries, sleep and retry
         await asyncio.sleep(1.0)
         
-    # If multi is enabled        
+    # Return found    
     if len(devs) > 0:
         return devs
         
@@ -311,9 +318,9 @@ async def start():
         # Clear the task
         RUNNING_TASK = None
         
-        # Rest between syncs
+        # Rest between syncs (Your CPU will thank you)
         if MODE == "SYNC" and RUNNING:
-            # Roughly 60hz
+            # Roughly 60hz - process time
             await asyncio.sleep(0.01) 
             
     # Sig kill happened
