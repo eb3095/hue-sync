@@ -297,7 +297,7 @@ async def start():
         # When the screen locks image grab isnt possible
         except OSError as e:
             exc_type, exc_value, exc_traceback = sys.exc_info()
-            if exc_value == "Screen grab failed":  
+            if exc_value.lower() == "screen grab failed":  
                 coroutines = []              
                 coroutines.append(asyncio.sleep(5.0))
                 RUNNING_TASK = asyncio.gather(*coroutines)
