@@ -72,10 +72,11 @@ def getPath(relative_path):
 
     return os.path.join(path, relative_path)
 
-def signalHandler():
+def signalHandlerKey(signal, frame):
     quitSync()
     
-def quitSync():    
+def quitSync():           
+    log("info", 'Termination detected, ending gracefully!') 
     global RUNNING, RUNNING_TASK
     RUNNING = False
     if RUNNING_TASK:
@@ -95,12 +96,8 @@ def log(level, str):
         
 def logUncaught(exctype, value, trace):
     # Capture these errors and recover
-    # Its from not being able to capture SIGINT on Windows
-    if str(exctype) == "<class 'KeyboardInterrupt'>":
-        quitSync()
-        return
-    
-    if str(exctype) == "<class 'KeyError'>":
+    # Its from not being able to capture SIGINT in threads
+    if exctype == KeyboardInterrupt or exctype == KeyError:
         quitSync()
         return
     
@@ -299,7 +296,7 @@ async def start():
             pass
         # When the screen locks image grab isnt possible
         except OSError as e:
-            if e.value == "Screen grab failed":  
+            if e.message == "Screen grab failed":  
                 coroutines = []              
                 coroutines.append(asyncio.sleep(5.0))
                 RUNNING_TASK = asyncio.gather(*coroutines)
@@ -316,7 +313,6 @@ async def start():
             await asyncio.sleep(0.01) 
             
     # Sig kill happened
-    log("info", 'Termination detected, ending gracefully!')
     for device in devices:
         await device.disconnect()
 
@@ -343,11 +339,7 @@ loop = QEventLoop(app)
 asyncio.set_event_loop(loop)
 
 # Catch CTRL+C
-try:
-    loop.add_signal_handler(signal.SIGINT, signalHandler)
-except NotImplementedError:
-    # Handle this with log hack
-    pass
+signal.signal(signal.SIGINT, signalHandlerKey)
 
 # Start
 with loop:
