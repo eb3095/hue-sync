@@ -297,6 +297,15 @@ async def start():
             await RUNNING_TASK
         except asyncio.CancelledError:
             pass
+        # When the screen locks image grab isnt possible
+        except OSError as e:
+            if e.value == "Screen grab failed":  
+                coroutines = []              
+                coroutines.append(asyncio.sleep(5.0))
+                RUNNING_TASK = asyncio.gather(*coroutines)
+                await RUNNING_TASK
+            else:
+                raise e
         
         # Clear the task
         RUNNING_TASK = None
