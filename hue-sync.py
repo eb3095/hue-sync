@@ -92,7 +92,7 @@ def log(level, str):
         logging.warning(str)
     if level == "error":
         logging.error(str)
-        exit(255)
+        sys.exit(255)
         
 def logUncaught(exctype, value, trace):
     # Capture these errors and recover
