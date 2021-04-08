@@ -74,6 +74,9 @@ def getPath(relative_path):
 
 def signalHandlerKey(signal, frame):
     quitSync()
+
+def signalHandler():
+    quitSync()
     
 def quitSync():           
     log("info", 'Termination detected, ending gracefully!') 
@@ -297,7 +300,7 @@ async def start():
         # When the screen locks image grab isnt possible
         except OSError as e:
             exc_type, exc_value, exc_traceback = sys.exc_info()
-            if exc_value.lower() == "screen grab failed":  
+            if str(exc_value).lower() == "screen grab failed":  
                 coroutines = []              
                 coroutines.append(asyncio.sleep(5.0))
                 RUNNING_TASK = asyncio.gather(*coroutines)
@@ -341,6 +344,11 @@ asyncio.set_event_loop(loop)
 
 # Catch CTRL+C
 signal.signal(signal.SIGINT, signalHandlerKey)
+try:
+    loop.add_signal_handler(signal.SIGINT, signalHandler)
+except NotImplementedError:
+    # Handle this with log hack
+    pass
 
 # Start
 with loop:
