@@ -114,10 +114,7 @@ def setMode(mode):
     if RUNNING_TASK:
         RUNNING_TASK.cancel()
 
-def getColorSpace(pos):
-    # Screenshot primary screen
-    image = ImageGrab.grab()
-        
+def getColorSpace(pos, image):        
     # Calculate pixel colors
     red = green = blue = 0
     
@@ -162,9 +159,12 @@ async def sync(device):
         pos = "all" 
         if "Devices" in CONFIG and device.getAddress() in CONFIG['Devices']:
             pos = CONFIG['Devices'][device.getAddress()]
-            
+        
+        # Screenshot primary screen
+        image = ImageGrab.grab()
+        
         # Get values
-        color = getColorSpace(pos)
+        color = getColorSpace(pos, image)
         brightness = max(color)
         
         # Set values
