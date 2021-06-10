@@ -27,17 +27,7 @@ CONFIG = {
 RUNNING = True
 RUNNING_TASK = None
 MODE = "SYNC"
-
-def createTray(widget):
-    tray = QSystemTrayIcon(widget)
-    icon = QIcon(getPath("assets/hue-sync.ico"))
-    tray.setIcon(icon)
-    tray.setVisible(True)
-    tray.setToolTip("Hue-Sync")
-    
-    menu = QMenu(widget)
-    
-    modes = [
+MODES = [
             "Red",
             "Green",
             "Blue",
@@ -50,8 +40,23 @@ def createTray(widget):
             "Sync",
             "Off"
     ]
+
+#
+# SysTray Functions
+#
+
+def createTray(widget):
+    tray = QSystemTrayIcon(widget)
+    icon = QIcon(getPath("assets/hue-sync.ico"))
+    tray.setIcon(icon)
+    tray.setVisible(True)
+    tray.setToolTip("Hue-Sync")
     
-    for mode in modes:
+    menu = QMenu(widget)
+    
+    
+    
+    for mode in MODES:
         def addAction(menu, mode):            
             button = QAction(mode, menu)
             button.triggered.connect(lambda: setMode(mode.upper()))        
@@ -63,7 +68,11 @@ def createTray(widget):
     menu.addAction(exitB)
     
     tray.setContextMenu(menu)
-        
+    
+#
+# System Functions
+#       
+
 def getPath(relative_path):
     try:
         path = sys._MEIPASS
@@ -107,12 +116,59 @@ def logUncaught(exctype, value, trace):
     trace = ''.join(traceback.format_tb(trace))
     log("error", "Error: %s\nValue: %s\nTrace: %s" % (exctype, value, trace))
     
+#
+# General App Functions
+#
+    
 def setMode(mode): 
     log("info", "Mode Changed: %s" % mode)
     global MODE, RUNNING_TASK
     MODE = mode
     if RUNNING_TASK:
         RUNNING_TASK.cancel()
+
+async def setDevice(device, image):
+    # Power on if off but set to on
+    if MODE != "OFF":
+        if not device.isPoweredOn():
+            await device.powerOn()
+            
+    # Set options
+    if MODE == "RED":
+        color = [255, 0, 0]
+    if MODE == "BLUE":
+        color = [0, 0, 255]
+    if MODE == "GREEN":
+        color = [0, 255, 0]
+    if MODE == "YELLOW":
+        color = [255, 255, 0]
+    if MODE == "ORANGE":
+        color = [255, 127, 0]
+    if MODE == "PURPLE":
+        color = [127, 0, 255]
+    if MODE == "PINK":
+        color = [255, 0, 255]
+    if MODE == "TEAL":
+        color = [0, 255, 255]
+    if MODE == "WHITE":
+        color = [255, 255, 255]
+        
+    # Turn off if set to off
+    if MODE == "OFF":
+        await device.powerOff()
+        
+    # Set color and brightness
+    if MODE != "OFF" and MODE != "SYNC":
+        await device.setColor(color)
+        await device.setBrightness(253)
+        
+    # Set task
+    if MODE == "SYNC":
+        await sync(device, image)
+
+#
+# Sync Related Functions
+#
 
 def getColorSpace(pos, image):        
     # Calculate pixel colors
@@ -154,14 +210,11 @@ def getColorSpace(pos, image):
         
     return [int(red), int(green), int(blue)]
 
-async def sync(device):    
+async def sync(device, image):    
         # Get device position
         pos = "all" 
         if "Devices" in CONFIG and device.getAddress() in CONFIG['Devices']:
             pos = CONFIG['Devices'][device.getAddress()]
-        
-        # Screenshot primary screen
-        image = ImageGrab.grab()
         
         # Get values
         color = getColorSpace(pos, image)
@@ -171,8 +224,13 @@ async def sync(device):
         await device.setColor(color)
         await device.setBrightness(brightness)   
         
+#
+# Device Related Functions
+#
+
 async def getDevices():
     devs = []
+    found = []
     for i in range(5):
         try:
             devices = await discover()
@@ -182,10 +240,10 @@ async def getDevices():
 
         for d in devices:
             # Skip added
-            if d.address in devs:
+            if d.address in found:
                 continue
             
-            # Skep devices not in config
+            # Skip devices not in config
             if len(CONFIG["Devices"]) > 0 and d.address not in CONFIG['Devices']:
                 continue
             
@@ -193,7 +251,8 @@ async def getDevices():
             if len(CONFIG["Devices"]) == 0 and "Hue" not in d.name:
                 continue            
             
-            devs.append(d.address)                
+            devs.append(d)    
+            found.append(d.address)             
                 
         # Some times devices take a few tries, sleep and retry
         await asyncio.sleep(1.0)
@@ -204,55 +263,21 @@ async def getDevices():
         
     log("info", "No device found!")
     return None
-
-async def setDevice(device):
-    # Power on if off but set to on
-    if MODE != "OFF":
-        if not device.isPoweredOn():
-            await device.powerOn()
-            
-    # Set options
-    if MODE == "RED":
-        color = [255, 0, 0]
-    if MODE == "BLUE":
-        color = [0, 0, 255]
-    if MODE == "GREEN":
-        color = [0, 255, 0]
-    if MODE == "YELLOW":
-        color = [255, 255, 0]
-    if MODE == "ORANGE":
-        color = [255, 127, 0]
-    if MODE == "PURPLE":
-        color = [127, 0, 255]
-    if MODE == "PINK":
-        color = [255, 0, 255]
-    if MODE == "TEAL":
-        color = [0, 255, 255]
-    if MODE == "WHITE":
-        color = [255, 255, 255]
-        
-    # Turn off if set to off
-    if MODE == "OFF":
-        await device.powerOff()
-        
-    # Set color and brightness
-    if MODE != "OFF" and MODE != "SYNC":
-        await device.setColor(color)
-        await device.setBrightness(253)
-        
-    # Set task
-    if MODE == "SYNC":
-        await sync(device)
         
 async def connectToDevices():        
     log("info", "Discovering...")
-    addresses = await getDevices()
+    hw = await getDevices()
+    addresses = []
     
-    if not addresses:
+    if not hw:
         log("info", "Devices couldn't be found!")
         exit(255)
         
-    log("info", "Found: %s" % addresses)
+    log("info", "Found: ")
+    for dev in hw:
+        log("info", "%s - %s" % (dev.address, dev.name))
+        addresses.append(dev.address)
+    
     
     log("info", "Connecting to devices...")
     
@@ -279,19 +304,57 @@ async def connectToDevices():
     
     return devices
     
+#
+# App Loop
+#
+    
 async def start():    
-    global RUNNING_TASK            
+    global RUNNING_TASK       
+    
+    # Connect to devices     
     devices = await connectToDevices()
     
+    # Close if nothing found
     if len(devices) < 1:
         log("error", "Failed to connect to any device!")
         
+    # Start app loop
     log("info", "Starting loop...")
     while RUNNING:   
         coroutines = []
         
+        # For each device synced
         for device in devices:
-            coroutines.append(setDevice(device))
+            # We pass this regardless if sync or not
+            image = None
+            
+            # If sync, grab the screen
+            if MODE == "SYNC":                
+                try:
+                    # Screenshot primary screen
+                    image = ImageGrab.grab()                    
+                # When the screen locks image grab isnt possible
+                except OSError as e:
+                    exc_type, exc_value, exc_traceback = sys.exc_info()
+                    if str(exc_value).lower() == "screen grab failed":  
+                        # Clear routines
+                        coroutines = [] 
+                        
+                        # Sleep 5 seconds             
+                        coroutines.append(asyncio.sleep(5.0))
+                        
+                        # Wait on sleep
+                        RUNNING_TASK = asyncio.gather(*coroutines)
+                        await RUNNING_TASK
+                        
+                        # Clear and restart
+                        RUNNING_TASK = None
+                        continue
+                    else:
+                        raise e
+                    
+            # Add a coroutine for each device being set
+            coroutines.append(setDevice(device, image))
            
         # Set wait task if not sync        
         if MODE != "SYNC":
@@ -299,21 +362,12 @@ async def start():
             
         # Set task
         RUNNING_TASK = asyncio.gather(*coroutines)
+        
         # Await the tasks
         try:
             await RUNNING_TASK
         except asyncio.CancelledError:
             pass
-        # When the screen locks image grab isnt possible
-        except OSError as e:
-            exc_type, exc_value, exc_traceback = sys.exc_info()
-            if str(exc_value).lower() == "screen grab failed":  
-                coroutines = []              
-                coroutines.append(asyncio.sleep(5.0))
-                RUNNING_TASK = asyncio.gather(*coroutines)
-                await RUNNING_TASK
-            else:
-                raise e
         
         # Clear the task
         RUNNING_TASK = None
@@ -327,6 +381,9 @@ async def start():
     for device in devices:
         await device.disconnect()
 
+#
+# App Start
+#
 
 # Set logging
 logging.basicConfig(filename='./hue-sync.log', level=logging.INFO)
