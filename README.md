@@ -2,7 +2,7 @@
 Hue LED Strip color syncing for PC.
 
 # Description
-This can be used to sync one "Hue Lamp" to a PC screen for color syncing. Theres a few
+This can be used to sync multiple "Hue Lamp" to a PC screen for color syncing. Theres a few
 limitations which are strictly based on my personal use case.
 
 This does NOT use the bridge! This is a DIRECT bluetooth connection!
